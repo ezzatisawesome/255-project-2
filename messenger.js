@@ -47,8 +47,21 @@ class MessengerClient {
    * Return Type: certificate object/dictionary
    */
   async generateCertificate (username) {
-    throw ('not implemented!')
-    const certificate = {}
+    // Construct EG pair and save
+    const egKeys = await generateEG()
+    const pubKey = await cryptoKeyToJSON(egKeys.pub)
+    const secKey = await cryptoKeyToJSON(egKeys.sec)
+    this.EGKeyPair = {pubKey, secKey}
+
+    // Construct certificate
+    const certificate = {
+      username,
+      pubKey
+    }
+
+    // Upload the self certificate certs object
+    this.certs[certificate.username] = JSON.stringify(certificate)
+
     return certificate
   }
 
@@ -62,9 +75,17 @@ class MessengerClient {
  * Return Type: void
  */
   async receiveCertificate (certificate, signature) {
-  // The signature will be on the output of stringifying the certificate
-  // rather than on the certificate directly.
+    // The signature will be on the output of stringifying the certificate
+    // rather than on the certificate directly.
     const certString = JSON.stringify(certificate)
+
+    // Verify certificate
+    const verificationRes = await verifyWithECDSA(this.caPublicKey, certString, signature)
+    if (!verificationRes) throw ('Tampering detected with certificate!')
+
+    // Add stringified ceritifcate to cert object
+    this.certs[certificate.username] = certString
+
     throw ('not implemented!')
   }
 
@@ -78,8 +99,28 @@ class MessengerClient {
  * Return Type: Tuple of [dictionary, string]
  */
   async sendMessage (name, plaintext) {
-    throw ('not implemented!')
-    const header = {}
+    const cert = JSON.parse(this.certs[name])
+    const recipientPubKey = cert.pubKey
+
+    // Set up session
+    if (!this.conns[name]) {
+
+    }
+
+    const sendingKey = ''
+    const iv = genRandomSalt()
+
+    // Construct header
+    const header = {
+      sendingKey: '',
+      iv,
+      vGov: '',
+      cGov: '',
+      ivGov: ''
+    }
+
+    encryptWithGCM(sendingKey, plaintext, iv, header)
+
     const ciphertext = ''
     return [header, ciphertext]
   }
